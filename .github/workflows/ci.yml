@@ -1,0 +1,32 @@
+name: Proofs and examples
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SWI-Prolog
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes swi-prolog-nox
+      - name: Proofs
+        run: swipl -g main -t halt proofs/theorems.pl
+      - name: Record the 200 examples (only when there are none yet)
+        if: github.event_name == 'push' && hashFiles('io/ios.pl') == ''
+        run: |
+          swipl -g record -t halt io/run.pl
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add io/ios.pl io/ios.txt
+          git commit -m "Record the 200 examples"
+          git push
+      - name: The 200 examples give the recorded outputs
+        run: swipl -g check -t halt io/run.pl
